@@ -1,166 +1,51 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SmallCap Lab — Playground</title>
-  <style>
-    :root{
-      --bg:#0b1220; --panel:#11182a; --ink:#e6e9f0; --muted:#b8c0cc; --line:#263043; --accent:#3b82f6;
+<script>
+  const base = window.location.origin;
+
+  async function toDisplay(res) {
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    if (ct.includes('application/json')) {
+      const j = await res.json();
+      return JSON.stringify(j, null, 2);
+    } else {
+      const t = await res.text();
+      return t;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    main{max-width:1100px;margin:32px auto;padding:0 16px}
-    h1{margin:0 0 16px}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px}
-    label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
-    input,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0f1526;color:var(--ink)}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    button{margin-top:12px;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--accent);color:white;cursor:pointer}
-    pre{white-space:pre-wrap;background:#0f1526;border:1px solid var(--line);border-radius:10px;padding:12px;min-height:120px}
-    a{color:#93c5fd}
-    .muted{color:var(--muted)}
-  </style>
-</head>
-<body>
-  <main>
-    <h1>SmallCap Lab — Playground</h1>
-    <p class="muted">Hit your deployed endpoints right from the browser. <a href="./docs/ENDPOINTS.md">Endpoint docs</a> • <a href="./">Home</a></p>
+  }
 
-    <div class="grid">
-      <!-- Screener -->
-      <section class="card">
-        <h2>Screener (/api/screen)</h2>
-        <div class="row">
-          <div>
-            <label>Min Dollar Volume</label>
-            <input id="minDollarVol" type="number" value="2000000" />
-          </div>
-          <div>
-            <label>Min Price</label>
-            <input id="minPrice" type="number" step="0.01" value="3" />
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Max Net Debt / EBITDA</label>
-            <input id="maxDebtToEbitda" type="number" step="0.1" value="2.5" />
-          </div>
-          <div>
-            <label>Min F-Score</label>
-            <input id="minFScore" type="number" value="6" />
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Min Gross Profitability %</label>
-            <input id="minGrossProf" type="number" step="0.1" value="0" />
-          </div>
-          <div>
-            <label>Exclude Earnings Window</label>
-            <select id="excludeEarningsWindow">
-              <option value="true" selected>true</option>
-              <option value="false">false</option>
-            </select>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>HMM Confidence Threshold</label>
-            <input id="confidence" type="number" step="0.01" value="0.7" />
-          </div>
-          <div></div>
-        </div>
-        <button id="runScreen">Run Screener</button>
-        <pre id="screenOut">{ results will appear here }</pre>
-      </section>
+  document.getElementById('runScreen').onclick = async () => {
+    const q = new URLSearchParams({
+      minDollarVol: document.getElementById('minDollarVol').value || "2000000",
+      minPrice: document.getElementById('minPrice').value || "3",
+      maxDebtToEbitda: document.getElementById('maxDebtToEbitda').value || "2.5",
+      minFScore: document.getElementById('minFScore').value || "6",
+      minGrossProf: document.getElementById('minGrossProf').value || "0",
+      excludeEarningsWindow: document.getElementById('excludeEarningsWindow').value || "true",
+      confidence: document.getElementById('confidence').value || "0.7",
+    }).toString();
+    const url = `${base}/api/screen?${q}`;
+    try{
+      const res = await fetch(url, { cache: 'no-store' });
+      document.getElementById('screenOut').textContent = await toDisplay(res);
+    }catch(e){
+      document.getElementById('screenOut').textContent = 'Error: ' + e;
+    }
+  };
 
-      <!-- Signal -->
-      <section class="card">
-        <h2>Signal (/api/signal)</h2>
-        <div class="row">
-          <div>
-            <label>Symbol</label>
-            <input id="symbol" value="AEIS" />
-          </div>
-          <div>
-            <label>Risk-On Probability (conf)</label>
-            <input id="conf" type="number" step="0.01" value="0.72" />
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>mu (mean excess return / period)</label>
-            <input id="mu" type="number" step="0.001" value="0.018" />
-          </div>
-          <div>
-            <label>sigma (vol / period)</label>
-            <input id="sigma" type="number" step="0.001" value="0.07" />
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Kelly Mode</label>
-            <select id="kellyMode">
-              <option value="quarter">quarter</option>
-              <option value="half" selected>half</option>
-              <option value="full">full</option>
-            </select>
-          </div>
-          <div>
-            <label>Max Weight (cap)</label>
-            <input id="maxWeight" type="number" step="0.01" value="0.07" />
-          </div>
-        </div>
-        <button id="runSignal">Get Signal</button>
-        <pre id="signalOut">{ results will appear here }</pre>
-      </section>
-    </div>
-  </main>
-
-  <script>
-    const base = window.location.origin;
-
-    document.getElementById('runScreen').onclick = async () => {
-      const q = new URLSearchParams({
-        minDollarVol: document.getElementById('minDollarVol').value || "2000000",
-        minPrice: document.getElementById('minPrice').value || "3",
-        maxDebtToEbitda: document.getElementById('maxDebtToEbitda').value || "2.5",
-        minFScore: document.getElementById('minFScore').value || "6",
-        minGrossProf: document.getElementById('minGrossProf').value || "0",
-        excludeEarningsWindow: document.getElementById('excludeEarningsWindow').value || "true",
-        confidence: document.getElementById('confidence').value || "0.7",
-      }).toString();
-      const url = `${base}/api/screen?${q}`;
-      try{
-        const res = await fetch(url, { cache: 'no-store' });
-        const json = await res.json();
-        document.getElementById('screenOut').textContent = JSON.stringify(json, null, 2);
-      }catch(e){
-        document.getElementById('screenOut').textContent = 'Error: ' + e;
-      }
-    };
-
-    document.getElementById('runSignal').onclick = async () => {
-      const q = new URLSearchParams({
-        symbol: document.getElementById('symbol').value || "AEIS",
-        conf: document.getElementById('conf').value || "0.72",
-        mu: document.getElementById('mu').value || "0.018",
-        sigma: document.getElementById('sigma').value || "0.07",
-        kellyMode: document.getElementById('kellyMode').value || "half",
-        maxWeight: document.getElementById('maxWeight').value || "0.07",
-      }).toString();
-      const url = `${base}/api/signal?${q}`;
-      try{
-        const res = await fetch(url, { cache: 'no-store' });
-        const json = await res.json();
-        document.getElementById('signalOut').textContent = JSON.stringify(json, null, 2);
-      }catch(e){
-        document.getElementById('signalOut').textContent = 'Error: ' + e;
-      }
-    };
-  </script>
-</body>
-</html>
+  document.getElementById('runSignal').onclick = async () => {
+    const q = new URLSearchParams({
+      symbol: document.getElementById('symbol').value || "AEIS",
+      conf: document.getElementById('conf').value || "0.72",
+      mu: document.getElementById('mu').value || "0.018",
+      sigma: document.getElementById('sigma').value || "0.07",
+      kellyMode: document.getElementById('kellyMode').value || "half",
+      maxWeight: document.getElementById('maxWeight').value || "0.07",
+    }).toString();
+    const url = `${base}/api/signal?${q}`;
+    try{
+      const res = await fetch(url, { cache: 'no-store' });
+      document.getElementById('signalOut').textContent = await toDisplay(res);
+    }catch(e){
+      document.getElementById('signalOut').textContent = 'Error: ' + e;
+    }
+  };
+</script>
