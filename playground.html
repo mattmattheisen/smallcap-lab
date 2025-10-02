@@ -1,1 +1,12 @@
-playground.html
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>Playground</title></head>
+  <body>
+    <h1>Playground</h1>
+    <p>If you can read this, the file deployed correctly.</p>
+    <p><a href="/api/health" target="_blank">Test /api/health</a></p>
+    <button onclick="fetch('/api/screen').then(r=>r.json()).then(j=>out.textContent=JSON.stringify(j,null,2))">Run Screener</button>
+    <button onclick="fetch('/api/signal').then(r=>r.json()).then(j=>out.textContent=JSON.stringify(j,null,2))">Get Signal</button>
+    <pre id="out">{ results will appear here }</pre>
+  </body>
+</html>
